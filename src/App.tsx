@@ -1,4 +1,5 @@
 import './App.css'
+import { useState } from 'react'
 
 type GameStepProps = {
   message: string
@@ -15,11 +16,12 @@ function GameStep({ message }: GameStepProps) {
 }
 
 type SquareProps = {
-  message: string
+  message?: string
+  onPlayerMove: () => void
 }
-function Square({ message }: SquareProps) {
+function Square({ message, onPlayerMove }: SquareProps) {
   const handleClick = () => {
-    console.log('clicked')
+    onPlayerMove()
   }
   return (
     <div
@@ -31,33 +33,136 @@ function Square({ message }: SquareProps) {
   )
 }
 
+type InitialSteps = {
+  title: string
+  snapshot: (string | undefined)[]
+}
+
+// snapshot
+const initialSteps: InitialSteps[] = [
+  {
+    title: 'Go to Game start',
+    snapshot: Array.from({ length: 9 }, () => undefined),
+  },
+]
+
+function checkWinner(board: (string | undefined)[], currentPlayer: 'X' | 'O') {
+  const winningConditions = [
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8],
+    [0, 3, 6],
+    [1, 4, 7],
+    [2, 5, 8],
+    [0, 4, 8],
+    [2, 4, 6],
+  ]
+
+  for (const condition of winningConditions) {
+    if (
+      board[condition[0]] === currentPlayer &&
+      board[condition[1]] === currentPlayer &&
+      board[condition[2]] === currentPlayer
+    ) {
+      console.log('Current player has won')
+      return true
+    }
+  }
+
+  return false
+}
+
 function App() {
+  const [steps, setSteps] = useState([initialSteps[0].title])
+
+  const [currentPlayer, setCurrentPlayer] = useState<'X' | 'O'>('X')
+
+  const [playerSelections, setPlayerSelections] = useState<
+    (string | undefined)[]
+  >(initialSteps[0].snapshot)
+
+  const [isWon, setIsWon] = useState(false)
+
+  const onPlayerMove = (index: number) => {
+    const tempArray = playerSelections.map((s, i) =>
+      i === index ? currentPlayer : s,
+    )
+    setPlayerSelections(tempArray)
+
+    const step = `Go to step #${steps.length}`
+    setSteps((steps) => [...steps, step])
+
+    initialSteps.push({
+      title: step,
+      snapshot: tempArray,
+    })
+
+    if (checkWinner(tempArray, currentPlayer)) {
+      setIsWon(true)
+      return
+    } else {
+      console.log('No winner yet.')
+    }
+
+    setCurrentPlayer((c) => (c === 'X' ? 'O' : 'X'))
+  }
+
   return (
     <div className="game ">
       <div>
-        <h1 className="status">Next player: X</h1>
+        <h1 className="status">
+          {isWon
+            ? `${currentPlayer} has won!`
+            : `Next player: ${currentPlayer}`}
+        </h1>
         <div>
-          <Square message="X" />
-          <Square message="O" />
-          <Square message="X" />
+          <Square
+            onPlayerMove={() => onPlayerMove(0)}
+            message={playerSelections[0]}
+          />
+          <Square
+            onPlayerMove={() => onPlayerMove(1)}
+            message={playerSelections[1]}
+          />
+          <Square
+            onPlayerMove={() => onPlayerMove(2)}
+            message={playerSelections[2]}
+          />
         </div>
         <div>
-          <Square message="X" />
-          <Square message="O" />
-          <Square message="X" />
+          <Square
+            onPlayerMove={() => onPlayerMove(3)}
+            message={playerSelections[3]}
+          />
+          <Square
+            onPlayerMove={() => onPlayerMove(4)}
+            message={playerSelections[4]}
+          />
+          <Square
+            onPlayerMove={() => onPlayerMove(5)}
+            message={playerSelections[5]}
+          />
         </div>
         <div>
-          <Square message="X" />
-          <Square message="O" />
-          <Square message="X" />
+          <Square
+            onPlayerMove={() => onPlayerMove(6)}
+            message={playerSelections[6]}
+          />
+          <Square
+            onPlayerMove={() => onPlayerMove(7)}
+            message={playerSelections[7]}
+          />
+          <Square
+            onPlayerMove={() => onPlayerMove(8)}
+            message={playerSelections[8]}
+          />
         </div>
       </div>
       <div className="game-info">
         <ol style={{ listStyle: 'auto' }}>
-          <GameStep message="Go to Game start" />
-          <GameStep message="Go to Step #1" />
-          <GameStep message="Go to Step #2" />
-          <GameStep message="Go to Step #3" />
+          {steps.map((step, index) => (
+            <GameStep key={index} message={step} />
+          ))}
         </ol>
       </div>
     </div>
