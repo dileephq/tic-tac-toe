@@ -28,15 +28,26 @@ function GameStep({ step, onStepClicked, currentStep }: GameStepProps) {
 type SquareProps = {
   message: string
   onPlayerMove: () => void
+  winningSquares: string
+  position: number
 }
-function Square({ message, onPlayerMove }: SquareProps) {
+function Square({
+  message,
+  onPlayerMove,
+  winningSquares,
+  position,
+}: SquareProps) {
   const handleClick = () => {
     onPlayerMove()
   }
+
+  const isWinningSquare = winningSquares.includes(position.toString())
+
   return (
     <div
       onClick={handleClick}
       className="square flex items-center justify-center"
+      style={{ backgroundColor: isWinningSquare ? 'yellow' : '' }}
     >
       <h2>{message}</h2>
     </div>
@@ -50,6 +61,7 @@ type Snapshot = {
   currentPlayer?: Player
   snapshot: string[]
   gameStage: GameStage
+  winningSquares: string
 }
 
 let snapshots: Snapshot[] = [
@@ -57,6 +69,7 @@ let snapshots: Snapshot[] = [
     step: 0,
     snapshot: Array.from({ length: 9 }, () => ''),
     gameStage: 'inPlay',
+    winningSquares: '',
   },
 ]
 
@@ -71,6 +84,8 @@ function App() {
   const [board, setBoard] = useState<string[]>(snapshots[0].snapshot)
 
   const [gameStage, setGameStage] = useState<GameStage>(snapshots[0].gameStage)
+
+  const [winningSquares, setWinningSquares] = useState('')
 
   const onStepClicked = (step: number) => {
     // if (step === currentStep) {
@@ -90,6 +105,7 @@ function App() {
         setCurrentPlayer(selectedSnapshot.currentPlayer === 'X' ? 'O' : 'X')
       }
     }
+    setWinningSquares(selectedSnapshot.winningSquares)
     setBoard(selectedSnapshot.snapshot)
     setGameStage(selectedSnapshot.gameStage)
   }
@@ -110,17 +126,16 @@ function App() {
 
     const step = steps.length
 
-    const gameState: GameStage = checkWinner(tempBoard, currentPlayer)
+    const winningCombination = checkWinner(tempBoard, currentPlayer)
+    setWinningSquares(winningCombination)
+
+    const gameState: GameStage = winningCombination
       ? 'won'
       : !tempBoard.includes('')
         ? 'drawn'
         : 'inPlay'
 
     if (currentStep < steps.length - 1) {
-      // const selectedSnapshot = snapshots.find(
-      //   (snapshot) => snapshot.step === currentStep,
-      // ) as Snapshot
-      // const indexOfStep = steps.indexOf(selectedSnapshot.step)
       const newSteps = steps.slice(0, currentStep + 2)
       setSteps(newSteps)
       snapshots = snapshots.slice(0, currentStep + 1)
@@ -129,8 +144,8 @@ function App() {
         currentPlayer: currentPlayer,
         snapshot: tempBoard,
         gameStage: gameState,
+        winningSquares: winningCombination,
       })
-      // setCurrentStep((step) => step + 1)
       setCurrentStep(currentStep + 1)
     } else {
       setSteps((steps) => [...steps, step])
@@ -139,6 +154,7 @@ function App() {
         currentPlayer: currentPlayer,
         snapshot: tempBoard,
         gameStage: gameState,
+        winningSquares: winningCombination,
       })
       setCurrentStep(step)
     }
@@ -173,23 +189,68 @@ function App() {
           {welcomeMessage}
         </h1>
         <div>
-          <Square onPlayerMove={() => onPlayerMove(0)} message={board[0]} />
-          <Square onPlayerMove={() => onPlayerMove(1)} message={board[1]} />
-          <Square onPlayerMove={() => onPlayerMove(2)} message={board[2]} />
+          <Square
+            winningSquares={winningSquares}
+            position={0}
+            onPlayerMove={() => onPlayerMove(0)}
+            message={board[0]}
+          />
+          <Square
+            winningSquares={winningSquares}
+            position={1}
+            onPlayerMove={() => onPlayerMove(1)}
+            message={board[1]}
+          />
+          <Square
+            winningSquares={winningSquares}
+            position={2}
+            onPlayerMove={() => onPlayerMove(2)}
+            message={board[2]}
+          />
         </div>
         <div>
-          <Square onPlayerMove={() => onPlayerMove(3)} message={board[3]} />
-          <Square onPlayerMove={() => onPlayerMove(4)} message={board[4]} />
-          <Square onPlayerMove={() => onPlayerMove(5)} message={board[5]} />
+          <Square
+            winningSquares={winningSquares}
+            position={3}
+            onPlayerMove={() => onPlayerMove(3)}
+            message={board[3]}
+          />
+          <Square
+            winningSquares={winningSquares}
+            position={4}
+            onPlayerMove={() => onPlayerMove(4)}
+            message={board[4]}
+          />
+          <Square
+            winningSquares={winningSquares}
+            position={5}
+            onPlayerMove={() => onPlayerMove(5)}
+            message={board[5]}
+          />
         </div>
         <div>
-          <Square onPlayerMove={() => onPlayerMove(6)} message={board[6]} />
-          <Square onPlayerMove={() => onPlayerMove(7)} message={board[7]} />
-          <Square onPlayerMove={() => onPlayerMove(8)} message={board[8]} />
+          <Square
+            winningSquares={winningSquares}
+            position={6}
+            onPlayerMove={() => onPlayerMove(6)}
+            message={board[6]}
+          />
+          <Square
+            winningSquares={winningSquares}
+            position={7}
+            onPlayerMove={() => onPlayerMove(7)}
+            message={board[7]}
+          />
+          <Square
+            winningSquares={winningSquares}
+            position={8}
+            onPlayerMove={() => onPlayerMove(8)}
+            message={board[8]}
+          />
         </div>
       </div>
       <div className="game-info">
-        <ol style={{ listStyle: 'auto' }}>
+        <ol style={{ listStyle: 'none' }}>
           {steps.map((step, index) => (
             <GameStep
               currentStep={currentStep}
@@ -222,11 +283,11 @@ function checkWinner(board: (string | undefined)[], currentPlayer: 'X' | 'O') {
       board[condition[1]] === currentPlayer &&
       board[condition[2]] === currentPlayer
     ) {
-      return true
+      return condition.join()
     }
   }
 
-  return false
+  return ''
 }
 
 export default App
