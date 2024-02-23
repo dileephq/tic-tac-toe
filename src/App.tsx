@@ -16,7 +16,11 @@ function GameStep({ step, onStepClicked, currentStep }: GameStepProps) {
       className="game-step"
       style={{ border: currentStep === step ? '2px dashed navy' : '' }}
     >
-      {step === 0 ? 'Go to Game start' : `Go to step #${step}`}
+      {currentStep === step
+        ? `You are at step #${step}`
+        : step === 0
+          ? 'Go to Game start'
+          : `Go to step #${step}`}
     </li>
   )
 }
