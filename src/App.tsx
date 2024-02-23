@@ -1,6 +1,5 @@
 import './App.css'
 import { useState } from 'react'
-import { value } from 'happy-dom/lib/PropertySymbol.d.ts.js'
 
 type GameStepProps = {
   message: string
@@ -18,7 +17,7 @@ function GameStep({ message, onStepClicked }: GameStepProps) {
 }
 
 type SquareProps = {
-  message?: string
+  message: string
   onPlayerMove: () => void
 }
 function Square({ message, onPlayerMove }: SquareProps) {
@@ -35,97 +34,118 @@ function Square({ message, onPlayerMove }: SquareProps) {
   )
 }
 
-type InitialSteps = {
+type Snapshot = {
+  step: number
   currentPlayer: 'X' | 'O'
   title: string
-  snapshot: (string | undefined)[]
+  snapshot: string[]
+  gameStage: GameStage
 }
 
-// snapshot
-const initialSteps: InitialSteps[] = [
+const snapshots: Snapshot[] = [
   {
+    step: 0,
     currentPlayer: 'X',
     title: 'Go to Game start',
-    snapshot: Array.from({ length: 9 }, () => undefined),
+    snapshot: Array.from({ length: 9 }, () => ''),
+    gameStage: 'inPlay',
   },
 ]
 
 type GameStage = 'won' | 'drawn' | 'inPlay'
 
 function App() {
-  const [steps, setSteps] = useState([initialSteps[0].title])
+  const [steps, setSteps] = useState([snapshots[0].title])
 
   const [currentPlayer, setCurrentPlayer] = useState<'X' | 'O'>(
-    initialSteps[0].currentPlayer,
+    snapshots[0].currentPlayer,
   )
 
-  const [board, setBoard] = useState<(string | undefined)[]>(
-    initialSteps[0].snapshot,
-  )
+  const [board, setBoard] = useState<string[]>(snapshots[0].snapshot)
 
-  const [isWon, setIsWon] = useState(false)
+  const [gameStage, setGameStage] = useState<GameStage>(snapshots[0].gameStage)
 
   const onStepClicked = (message: string) => {
-    const step = initialSteps.find(
+    const stepSnapshot = snapshots.find(
       (step) => step.title === message,
-    ) as InitialSteps
+    ) as Snapshot
 
-    if (step.title === initialSteps[0].title) {
-      reset()
-      return
+    if (
+      stepSnapshot.step === snapshots[0].step ||
+      stepSnapshot.step === snapshots[9].step
+    ) {
+      setCurrentPlayer(stepSnapshot.currentPlayer)
+    } else {
+      setCurrentPlayer(stepSnapshot.currentPlayer === 'X' ? 'O' : 'X')
     }
-    setBoard(step.snapshot)
-    setCurrentPlayer(step.currentPlayer === 'X' ? 'O' : 'X')
-    const indexOfStep = steps.indexOf(step.title)
-    setSteps((steps) => steps.slice(0, indexOfStep + 1))
+    setBoard(stepSnapshot.snapshot)
+
+    // const indexOfStep = steps.indexOf(stepSnapshot.title)
+    // setSteps((steps) => steps.slice(0, indexOfStep + 1))
+    // snapshots = snapshots.slice(0, indexOfStep + 1)
+    // slice snapshots
+    setGameStage(stepSnapshot.gameStage)
   }
 
-  const reset = () => {
-    setSteps([initialSteps[0].title])
-    setCurrentPlayer(initialSteps[0].currentPlayer)
-    setBoard(initialSteps[0].snapshot)
-    setIsWon(false)
-  }
+  // const reset = () => {
+  //   setSteps([snapshots[0].title])
+  //   setCurrentPlayer(snapshots[0].currentPlayer)
+  //   setBoard(snapshots[0].snapshot)
+  //   setGameStage(snapshots[0].gameStage)
+  // }
 
   const onPlayerMove = (index: number) => {
-    // if board filled  > final, drawn
-
-    if (isWon || board[index] !== undefined) {
+    if (['won', 'drawn'].includes(gameStage) || board[index] !== '') {
       return
     }
     const tempBoard = board.map((s, i) => (i === index ? currentPlayer : s))
     setBoard(tempBoard)
 
-    if (!tempBoard.includes(undefined)) {
-    }
-
     const step = `Go to step #${steps.length}`
     setSteps((steps) => [...steps, step])
 
-    initialSteps.push({
+    const gameState: GameStage = checkWinner(tempBoard, currentPlayer)
+      ? 'won'
+      : !tempBoard.includes('')
+        ? 'drawn'
+        : 'inPlay'
+
+    snapshots.push({
+      step: steps.length,
       currentPlayer: currentPlayer,
       title: step,
       snapshot: tempBoard,
+      gameStage: gameState,
     })
 
-    if (checkWinner(tempBoard, currentPlayer)) {
-      setIsWon(true)
+    if (gameState === 'drawn') {
+      setGameStage('drawn')
       return
+    } else if (gameState === 'won') {
+      setGameStage('won')
+      return
+    } else {
+      setGameStage('inPlay')
     }
 
     setCurrentPlayer((c) => (c === 'X' ? 'O' : 'X'))
   }
 
+  const welcomeMessage =
+    gameStage === 'drawn'
+      ? `Drawn`
+      : gameStage === 'won'
+        ? `${currentPlayer} won!!!!`
+        : `Next player: ${currentPlayer}`
+
+  const messageBackground =
+    gameStage === 'drawn' ? 'green' : gameStage === 'won' ? 'yellow' : ''
+
   return (
     <div className="game ">
       <div>
-        <h1
-          className="status"
-          style={{ backgroundColor: isWon ? 'yellow' : '' }}
-        >
-          {isWon
-            ? `${currentPlayer} has won!`
-            : `Next player: ${currentPlayer}`}
+        <h1 className="status" style={{ backgroundColor: messageBackground }}>
+          {welcomeMessage}
         </h1>
         <div>
           <Square onPlayerMove={() => onPlayerMove(0)} message={board[0]} />
