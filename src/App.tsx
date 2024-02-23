@@ -2,16 +2,21 @@ import './App.css'
 import { useState } from 'react'
 
 type GameStepProps = {
-  message: string
-  onStepClicked: (message: string) => void
+  step: number
+  onStepClicked: (step: number) => void
+  currentStep: number
 }
-function GameStep({ message, onStepClicked }: GameStepProps) {
+function GameStep({ step, onStepClicked, currentStep }: GameStepProps) {
   const handleClick = () => {
-    onStepClicked(message)
+    onStepClicked(step)
   }
   return (
-    <li onClick={handleClick} className="game-step">
-      {message}
+    <li
+      onClick={handleClick}
+      className="game-step"
+      style={{ border: currentStep === step ? '2px dashed navy' : '' }}
+    >
+      {step === 0 ? 'Go to Game start' : `Go to step #${step}`}
     </li>
   )
 }
@@ -34,19 +39,18 @@ function Square({ message, onPlayerMove }: SquareProps) {
   )
 }
 
+type Player = 'X' | 'O'
+
 type Snapshot = {
   step: number
-  currentPlayer: 'X' | 'O'
-  title: string
+  currentPlayer?: Player
   snapshot: string[]
   gameStage: GameStage
 }
 
-const snapshots: Snapshot[] = [
+let snapshots: Snapshot[] = [
   {
     step: 0,
-    currentPlayer: 'X',
-    title: 'Go to Game start',
     snapshot: Array.from({ length: 9 }, () => ''),
     gameStage: 'inPlay',
   },
@@ -55,36 +59,35 @@ const snapshots: Snapshot[] = [
 type GameStage = 'won' | 'drawn' | 'inPlay'
 
 function App() {
-  const [steps, setSteps] = useState([snapshots[0].title])
+  const [steps, setSteps] = useState([snapshots[0].step])
+  const [currentStep, setCurrentStep] = useState(snapshots[0].step)
 
-  const [currentPlayer, setCurrentPlayer] = useState<'X' | 'O'>(
-    snapshots[0].currentPlayer,
-  )
+  const [currentPlayer, setCurrentPlayer] = useState<Player>('X')
 
   const [board, setBoard] = useState<string[]>(snapshots[0].snapshot)
 
   const [gameStage, setGameStage] = useState<GameStage>(snapshots[0].gameStage)
 
-  const onStepClicked = (message: string) => {
-    const stepSnapshot = snapshots.find(
-      (step) => step.title === message,
+  const onStepClicked = (step: number) => {
+    // if (step === currentStep) {
+    //   return
+    // }
+    setCurrentStep(step)
+    const selectedSnapshot = snapshots.find(
+      (snapshot) => snapshot.step === step,
     ) as Snapshot
 
-    if (
-      stepSnapshot.step === snapshots[0].step ||
-      stepSnapshot.step === snapshots[9].step
-    ) {
-      setCurrentPlayer(stepSnapshot.currentPlayer)
+    if (['won', 'drawn'].includes(selectedSnapshot.gameStage)) {
+      setCurrentPlayer(selectedSnapshot.currentPlayer as Player)
     } else {
-      setCurrentPlayer(stepSnapshot.currentPlayer === 'X' ? 'O' : 'X')
+      if (selectedSnapshot.step === snapshots[0].step) {
+        setCurrentPlayer('X')
+      } else {
+        setCurrentPlayer(selectedSnapshot.currentPlayer === 'X' ? 'O' : 'X')
+      }
     }
-    setBoard(stepSnapshot.snapshot)
-
-    // const indexOfStep = steps.indexOf(stepSnapshot.title)
-    // setSteps((steps) => steps.slice(0, indexOfStep + 1))
-    // snapshots = snapshots.slice(0, indexOfStep + 1)
-    // slice snapshots
-    setGameStage(stepSnapshot.gameStage)
+    setBoard(selectedSnapshot.snapshot)
+    setGameStage(selectedSnapshot.gameStage)
   }
 
   // const reset = () => {
@@ -101,8 +104,7 @@ function App() {
     const tempBoard = board.map((s, i) => (i === index ? currentPlayer : s))
     setBoard(tempBoard)
 
-    const step = `Go to step #${steps.length}`
-    setSteps((steps) => [...steps, step])
+    const step = steps.length
 
     const gameState: GameStage = checkWinner(tempBoard, currentPlayer)
       ? 'won'
@@ -110,13 +112,32 @@ function App() {
         ? 'drawn'
         : 'inPlay'
 
-    snapshots.push({
-      step: steps.length,
-      currentPlayer: currentPlayer,
-      title: step,
-      snapshot: tempBoard,
-      gameStage: gameState,
-    })
+    if (currentStep < steps.length - 1) {
+      // const selectedSnapshot = snapshots.find(
+      //   (snapshot) => snapshot.step === currentStep,
+      // ) as Snapshot
+      // const indexOfStep = steps.indexOf(selectedSnapshot.step)
+      const newSteps = steps.slice(0, currentStep + 2)
+      setSteps(newSteps)
+      snapshots = snapshots.slice(0, currentStep + 1)
+      snapshots.push({
+        step: currentStep + 1,
+        currentPlayer: currentPlayer,
+        snapshot: tempBoard,
+        gameStage: gameState,
+      })
+      // setCurrentStep((step) => step + 1)
+      setCurrentStep(currentStep + 1)
+    } else {
+      setSteps((steps) => [...steps, step])
+      snapshots.push({
+        step: step,
+        currentPlayer: currentPlayer,
+        snapshot: tempBoard,
+        gameStage: gameState,
+      })
+      setCurrentStep(step)
+    }
 
     if (gameState === 'drawn') {
       setGameStage('drawn')
@@ -167,9 +188,10 @@ function App() {
         <ol style={{ listStyle: 'auto' }}>
           {steps.map((step, index) => (
             <GameStep
+              currentStep={currentStep}
               onStepClicked={onStepClicked}
               key={index}
-              message={step}
+              step={step}
             />
           ))}
         </ol>
